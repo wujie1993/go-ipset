@@ -6,7 +6,8 @@ import (
 	"os/exec"
 )
 
-type IpSet struct {
+// IPSet defines the struct of ipset
+type IPSet struct {
 	Name     string `json:"name"`
 	Type     string `json:"type"`
 	Revision int64  `json:"revision"`
@@ -17,16 +18,18 @@ type IpSet struct {
 		MemSize    int64  `json:"max_size"`
 		References int64  `json:"references"`
 	} `json:"header"`
-	Members []IpSetMember `json:"members"`
+	Members []Member `json:"members"`
 }
 
-type IpSetMember struct {
+// Member is the member of ipset
+type Member struct {
 	Elem string `json:"elem"`
 }
 
+// ListSetResult is the return struct of ipset list
 type ListSetResult struct {
 	XMLName xml.Name `xml:"ipsets"`
-	IpSet   []struct {
+	IPSet   []struct {
 		Name     string `xml:"name,attr"`
 		Type     string `xml:"type"`
 		Revision int64  `xml:"revision"`
@@ -46,7 +49,8 @@ type ListSetResult struct {
 	} `xml:"ipset"`
 }
 
-func (s IpSet) ContainEntry(entry string) bool {
+// ContainEntry detect if entry already exist in ipset
+func (s IPSet) ContainEntry(entry string) bool {
 	for _, member := range s.Members {
 		if entry == member.Elem {
 			return true
@@ -55,7 +59,10 @@ func (s IpSet) ContainEntry(entry string) bool {
 	return false
 }
 
-// CreateSet Create a new set
+// CreateSet create a new ipset
+// setName: the name of ipset
+// typeName: the type of ipset
+// createOpotion: the options of ipset
 func CreateSet(setName, typeName string, createOption ...string) error {
 	args := append([]string{"create", setName, typeName}, createOption...)
 	output, err := exec.Command("ipset", args...).CombinedOutput()
@@ -65,7 +72,8 @@ func CreateSet(setName, typeName string, createOption ...string) error {
 	return nil
 }
 
-// DestroySet Destroy a named set or all sets
+// DestroySet destroy a ipset .It will delete all ipset when setName is empty.
+// setName: the name of ipset
 func DestroySet(setName string) error {
 	args := []string{"destroy", setName}
 	output, err := exec.Command("ipset", args...).CombinedOutput()
@@ -75,7 +83,7 @@ func DestroySet(setName string) error {
 	return nil
 }
 
-// AddEntry Add entry to the named set
+// AddEntry add entry to the named set
 func AddEntry(setName, entry string, addOption ...string) error {
 	args := append([]string{"add", setName, entry}, addOption...)
 	output, err := exec.Command("ipset", args...).CombinedOutput()
@@ -85,7 +93,7 @@ func AddEntry(setName, entry string, addOption ...string) error {
 	return nil
 }
 
-// DelEntry Delete entry to the named set
+// DelEntry delete entry to the named set
 func DelEntry(setName, entry string) error {
 	args := []string{"del", setName, entry}
 	output, err := exec.Command("ipset", args...).CombinedOutput()
@@ -95,8 +103,8 @@ func DelEntry(setName, entry string) error {
 	return nil
 }
 
-// GetSet Get the entries of a named set
-func GetSet(setName string) (*IpSet, error) {
+// GetSet get the entries of a named set
+func GetSet(setName string) (*IPSet, error) {
 	ipSets, err := ListSet()
 	if err != nil {
 		return nil, err
@@ -111,8 +119,8 @@ func GetSet(setName string) (*IpSet, error) {
 	return nil, nil
 }
 
-// ListSet List the entries of a named set or all sets
-func ListSet() ([]IpSet, error) {
+// ListSet list the entries of a named set or all sets
+func ListSet() ([]IPSet, error) {
 	args := []string{"list", "-o", "xml"}
 	output, err := exec.Command("ipset", args...).CombinedOutput()
 	if err != nil {
@@ -124,23 +132,23 @@ func ListSet() ([]IpSet, error) {
 		return nil, err
 	}
 
-	ipSets := make([]IpSet, 0)
-	for _, resultIpSet := range listSetResult.IpSet {
-		var ipSet IpSet
-		ipSet.Header.Family = resultIpSet.Header.Family
-		ipSet.Header.HashSize = resultIpSet.Header.Hashsize
-		ipSet.Header.MaxElem = resultIpSet.Header.Maxelem
-		ipSet.Header.MemSize = resultIpSet.Header.Memsize
-		ipSet.Header.References = resultIpSet.Header.References
-		ipSet.Members = make([]IpSetMember, 0)
-		for _, resultMember := range resultIpSet.Members.Member {
-			var member IpSetMember
+	ipSets := make([]IPSet, 0)
+	for _, resultIPSet := range listSetResult.IPSet {
+		var ipSet IPSet
+		ipSet.Header.Family = resultIPSet.Header.Family
+		ipSet.Header.HashSize = resultIPSet.Header.Hashsize
+		ipSet.Header.MaxElem = resultIPSet.Header.Maxelem
+		ipSet.Header.MemSize = resultIPSet.Header.Memsize
+		ipSet.Header.References = resultIPSet.Header.References
+		ipSet.Members = make([]Member, 0)
+		for _, resultMember := range resultIPSet.Members.Member {
+			var member Member
 			member.Elem = resultMember.Elem
 			ipSet.Members = append(ipSet.Members, member)
 		}
-		ipSet.Name = resultIpSet.Name
-		ipSet.Revision = resultIpSet.Revision
-		ipSet.Type = resultIpSet.Type
+		ipSet.Name = resultIPSet.Name
+		ipSet.Revision = resultIPSet.Revision
+		ipSet.Type = resultIPSet.Type
 		ipSets = append(ipSets, ipSet)
 	}
 
